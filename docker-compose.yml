@@ -1,0 +1,91 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq_eai
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    networks:
+      - eai_network
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  mysql_db:
+    image: mysql:8.0
+    container_name: mysql_eai
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - eai_network
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api_gateway_eai
+    ports:
+      - "3000:3000"
+    depends_on:
+      - rabbitmq
+    networks:
+      - eai_network
+
+  registrasi:
+    build: ./registrasi
+    container_name: registrasi_eai
+    ports:
+      - "3001:3001"
+    depends_on:
+      - mysql_db
+      - rabbitmq
+    networks:
+      - eai_network
+
+  rekam-medis:
+    build: ./rekam-medis
+    container_name: rekam_medis_eai
+    ports:
+      - "3002:3002"
+    depends_on:
+      - mysql_db
+      - rabbitmq
+    networks:
+      - eai_network
+
+  farmasi:
+    build: ./farmasi
+    container_name: farmasi_eai
+    ports:
+      - "3003:3003"
+    depends_on:
+      - mysql_db
+      - rabbitmq
+    networks:
+      - eai_network
+
+  billing:
+    build: ./billing
+    container_name: billing_eai
+    ports:
+      - "3004:3004"
+    depends_on:
+      - mysql_db
+      - rabbitmq
+    networks:
+      - eai_network
+
+networks:
+  eai_network:
+    driver: bridge
+
+volumes:
+  rabbitmq_data:
+  mysql_data:

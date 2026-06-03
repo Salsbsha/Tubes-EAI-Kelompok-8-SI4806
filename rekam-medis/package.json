@@ -1,0 +1,14 @@
+{
+  "name": "rekam-medis",
+  "version": "1.0.0",
+  "description": "Microservice for rekam-medis",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mysql2": "^3.6.5",
+    "amqplib": "^0.10.3"
+  }
+}

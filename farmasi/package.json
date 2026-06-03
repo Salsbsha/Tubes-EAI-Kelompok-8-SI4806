@@ -1,0 +1,16 @@
+{
+  "name": "farmasi",
+  "version": "1.0.0",
+  "description": "Microservice for farmasi",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mysql2": "^3.6.5",
+    "amqplib": "^0.10.3",
+    "xml2js": "^0.6.2",
+    "body-parser-xml": "^2.0.3"
+  }
+}
