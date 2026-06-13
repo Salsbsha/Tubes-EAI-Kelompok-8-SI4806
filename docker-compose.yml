@@ -82,6 +82,14 @@ services:
     networks:
       - eai_network
 
+  frontend:
+    build: ./frontend
+    container_name: frontend_eai
+    ports:
+      - "8080:80"
+    networks:
+      - eai_network
+
 networks:
   eai_network:
     driver: bridge

@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS stok_obat (
 -- Masukkan data dummy obat
 INSERT IGNORE INTO stok_obat (kode_obat, nama_obat, stok, harga) VALUES
 ('OBT-001', 'Paracetamol 500mg', 100, 5000.00),
-('OBT-002', 'Amoxicillin', 50, 15000.00);
+('OBT-002', 'Amoxicillin', 50, 15000.00),
+('OBT-003', 'Mucera', 1500, 20000.00);
 
 -- 4. Skema Billing
 USE db_billing;

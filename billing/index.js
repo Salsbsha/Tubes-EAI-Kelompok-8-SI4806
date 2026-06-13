@@ -1,8 +1,10 @@
 const express = require('express');
+const cors = require('cors');
 const mysql = require('mysql2/promise');
 const amqplib = require('amqplib');
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 const dbConfig = {
@@ -19,7 +21,7 @@ async function connectRabbitMQ() {
         connection = await amqplib.connect(amqpServer);
         channel = await connection.createChannel();
         
-        // 1. EIP Subscriber (Pub-Sub): Mendengarkan Pendaftaran Pasien Baru
+        // 1. dengerin kalo ada pasien daftar buat nambahin tagihan admin
         await channel.assertExchange('eai_pubsub', 'fanout', { durable: true });
         const q_pubsub = await channel.assertQueue('q_billing_pasien_baru', { exclusive: false });
         await channel.bindQueue(q_pubsub.queue, 'eai_pubsub', '');
@@ -35,7 +37,7 @@ async function connectRabbitMQ() {
             }
         });
 
-        // 2. Dengarkan rute tagihan obat dari Gateway (Farmasi)
+        // 2. dengerin tagihan obat dari gateway
         await channel.assertQueue('q_billing_in', { durable: true });
         channel.consume('q_billing_in', async (msg) => {
             if (msg.content) {
@@ -48,7 +50,7 @@ async function connectRabbitMQ() {
             }
         });
 
-        console.log("Sistem Billing sukses terhubung ke RabbitMQ");
+        console.log("billing konek ke rabbitmq");
     } catch (err) {
         console.error("Gagal koneksi RabbitMQ...", err);
         setTimeout(connectRabbitMQ, 5000);

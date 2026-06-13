@@ -23,12 +23,12 @@ async function connectRabbitMQ() {
         await channel.assertQueue('q_farmasi_in', { durable: true });
         await channel.assertQueue('q_gateway_in', { durable: true }); // Untuk ngirim balik tagihan
 
-        console.log("Sistem Farmasi terhubung ke RabbitMQ");
+        console.log("farmasi sukses konek rabbitmq");
 
         channel.consume('q_farmasi_in', async (msg) => {
             if (msg.content) {
                 const xmlData = msg.content.toString();
-                console.log("Farmasi Menerima Format XML:\n", xmlData);
+                console.log("dapet data xml dari gateway:\n", xmlData);
                 
                 // Parse XML kembali ke Objek JS
                 const parser = new xml2js.Parser({ explicitArray: false });
@@ -55,7 +55,7 @@ async function connectRabbitMQ() {
                             await db.execute('UPDATE stok_obat SET stok = stok - ? WHERE kode_obat = ?', [jumlah, kode_obat]);
                             console.log(`Berhasil! Stok ${kode_obat} dikurangi ${jumlah}. Harga obat = Rp${harga_total}`);
 
-                            // Kirim instruksi tagihan ke Gateway (dalam format JSON)
+                            // kirim total harga obat ke gateway biar dimasukin ke tagihan
                             const payload = {
                                 tipe_pesan: "UPDATE_TAGIHAN",
                                 id_pasien: id_pasien,

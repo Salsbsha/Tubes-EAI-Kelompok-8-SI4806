@@ -12,22 +12,22 @@ async function connectRabbitMQ() {
         connection = await amqplib.connect(amqpServer);
         channel = await connection.createChannel();
         
-        // Deklarasi Antrean
+        // bikin antrian di rabbitmq
         await channel.assertQueue('q_gateway_in', { durable: true });
         await channel.assertQueue('q_farmasi_in', { durable: true });
         await channel.assertQueue('q_billing_in', { durable: true });
 
-        console.log("API Gateway (Router & Translator) terhubung ke RabbitMQ");
+        console.log("gateway udah konek ke rabbitmq");
 
-        // EIP: Message Router & Translator
+        // ambil pesan dari antrian masuk
         channel.consume('q_gateway_in', (msg) => {
             if (msg.content) {
                 const data = JSON.parse(msg.content.toString());
-                console.log("Gateway menerima pesan dengan tipe:", data.tipe_pesan);
+                console.log("dapet pesan tipe:", data.tipe_pesan);
 
-                // Pola 1: Content-Based Router (Berdasarkan Tipe Pesan)
+                // cek isi pesannya apa
                 if (data.tipe_pesan === 'KIRIM_RESEP') {
-                    // Pola 2: Message Translator (JSON -> XML)
+                    // ubah format json ke xml biar kebaca sama sistem farmasi
                     const builder = new xml2js.Builder({ rootName: 'ResepFarmasi' });
                     const xmlPayload = builder.buildObject({
                         PasienID: data.id_pasien,
@@ -35,13 +35,13 @@ async function connectRabbitMQ() {
                         Qty: data.jumlah
                     });
 
-                    console.log("-> Meneruskan ke Farmasi dalam format XML");
-                    // Rute ke antrean Farmasi
+                    console.log("-> kirim ke farmasi pake format xml");
+                    // kirim pesannya ke queue farmasi
                     channel.sendToQueue('q_farmasi_in', Buffer.from(xmlPayload), { persistent: true });
                     
                 } else if (data.tipe_pesan === 'UPDATE_TAGIHAN') {
-                    console.log("-> Meneruskan ke Billing dalam format JSON");
-                    // Rute ke antrean Billing (tetap JSON)
+                    console.log("-> kirim ke billing pake format json");
+                    // kirim pesannya ke queue billing
                     channel.sendToQueue('q_billing_in', Buffer.from(JSON.stringify(data)), { persistent: true });
                 }
                 

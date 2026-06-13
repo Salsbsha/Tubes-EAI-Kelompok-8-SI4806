@@ -1,8 +1,10 @@
 const express = require('express');
+const cors = require('cors');
 const mysql = require('mysql2/promise');
 const amqplib = require('amqplib');
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 const dbConfig = {
@@ -19,7 +21,7 @@ async function connectRabbitMQ() {
         connection = await amqplib.connect(amqpServer);
         channel = await connection.createChannel();
         
-        // 1. EIP Subscriber: Mendengarkan pasien baru dari Registrasi
+        // 1. dengerin kalau ada pasien baru daftar
         await channel.assertExchange('eai_pubsub', 'fanout', { durable: true });
         // Membuat antrean khusus untuk rekam medis
         const q = await channel.assertQueue('q_rm_pasien_baru', { exclusive: false });
@@ -29,9 +31,9 @@ async function connectRabbitMQ() {
         channel.consume(q.queue, async (msg) => {
             if (msg.content) {
                 const data = JSON.parse(msg.content.toString());
-                console.log("Event Diterima: Pasien Baru mendaftar ->", data.nama);
+                console.log("ada pasien baru daftar nih ->", data.nama);
                 
-                // Secara otomatis buat folder rekam medis kosong di database
+                // bikinin data kosong di db rekam medis buat pasien ini
                 const db = await mysql.createConnection(dbConfig);
                 await db.execute('INSERT INTO rekam_medis (id_pasien, keluhan, status) VALUES (?, ?, ?)', [data.id_pasien, '', 'Menunggu Pemeriksaan']);
                 await db.end();
@@ -40,10 +42,10 @@ async function connectRabbitMQ() {
             }
         });
         
-        // 2. Setup Antrean ke Gateway (Untuk pesan Resep)
+        // 2. siapin antrian buat kirim resep ke gateway
         await channel.assertQueue('q_gateway_in', { durable: true });
 
-        console.log("Sistem Rekam Medis sukses terhubung ke RabbitMQ");
+        console.log("rekam medis konek ke rabbitmq");
     } catch (err) {
         console.error("Gagal koneksi RabbitMQ, mencoba lagi dalam 5 detik...", err);
         setTimeout(connectRabbitMQ, 5000);
@@ -62,7 +64,7 @@ app.post('/resep', async (req, res) => {
         await db.execute('INSERT INTO resep (id_pasien, kode_obat, jumlah) VALUES (?, ?, ?)', [id_pasien, kode_obat, jumlah]);
         await db.end();
 
-        // 2. Kirim pesan ke API Gateway untuk diarahkan ke Farmasi
+        // 2. oper resepnya ke gateway biar diterusin ke farmasi
         const payload = { 
             tipe_pesan: "KIRIM_RESEP", 
             id_pasien, 

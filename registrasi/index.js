@@ -1,8 +1,10 @@
 const express = require('express');
+const cors = require('cors');
 const mysql = require('mysql2/promise');
 const amqplib = require('amqplib');
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 // Konfigurasi Database
@@ -20,9 +22,9 @@ async function connectRabbitMQ() {
         const amqpServer = "amqp://admin:admin123@rabbitmq_eai:5672";
         connection = await amqplib.connect(amqpServer);
         channel = await connection.createChannel();
-        // Mendeklarasikan Exchange tipe 'fanout' untuk pola EIP Publish-Subscribe
+        // bikin exchange fanout buat nge-broadcast pesan
         await channel.assertExchange('eai_pubsub', 'fanout', { durable: true });
-        console.log("Sistem Registrasi sukses terhubung ke RabbitMQ");
+        console.log("registrasi nyambung ke rabbitmq");
     } catch (err) {
         console.error("Gagal koneksi RabbitMQ, mencoba lagi dalam 5 detik...", err);
         setTimeout(connectRabbitMQ, 5000);
@@ -44,11 +46,11 @@ app.post('/register', async (req, res) => {
         await db.execute('INSERT INTO pasien (id, nama, alamat) VALUES (?, ?, ?)', [id_pasien, nama, alamat || '']);
         await db.end();
 
-        // 2. EIP Publish-Subscribe: Broadcast Data via RabbitMQ
+        // 2. sebar luaskan info pasien baru lewat rabbitmq
         const payload = { id_pasien, nama, alamat };
         channel.publish('eai_pubsub', '', Buffer.from(JSON.stringify(payload)));
         
-        console.log(`Berhasil mendaftar Pasien ${nama} dan menyebarkan pesan`);
+        console.log(`pasien ${nama} berhasil daftar dan pesannya udah dikirim`);
         res.json({ message: "Pasien berhasil didaftarkan", id_pasien });
     } catch (error) {
         console.error(error);
